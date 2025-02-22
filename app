@@ -2,6 +2,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebas
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { setDoc} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+
 const firebaseConfig = {
     apiKey: "AIzaSyBtuhLluv-z5jGcHq_HL03Xt38q8U6zYsI",
     authDomain: "equipment-trackin.firebaseapp.com",
@@ -62,6 +66,37 @@ onAuthStateChanged(auth, async (user) => {
         loader.style.display = "none";
     } else {
         showPage("login-page");
+    }
+});
+
+
+
+document.getElementById("create-user-btn").addEventListener("click", async () => {
+    const email = document.getElementById("new-user-email").value;
+    const password = document.getElementById("new-user-password").value;
+    const username = document.getElementById("new-username").value;
+    const role = document.getElementById("new-user-role").value;
+
+    const errorMsg = document.getElementById("create-user-error");
+    const successMsg = document.getElementById("create-user-success");
+    errorMsg.innerText = "";
+    successMsg.innerText = "";
+
+    try {
+        // Create User Account
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const userId = userCredential.user.uid;
+
+        // Store User Info in Firestore
+        await setDoc(doc(db, "users", userId), {
+            email: email,
+            username: username,
+            role: role
+        });
+
+        successMsg.innerText = "User created successfully!";
+    } catch (error) {
+        errorMsg.innerText = error.message;
     }
 });
 
