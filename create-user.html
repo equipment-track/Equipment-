@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create User</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="login-container">
+        <h1>Create User</h1>
+        <div id="error-message" class="error-message" style="display: none;"></div>
+        
+        <input type="email" id="email" placeholder="Enter email" required>
+        <input type="password" id="password" placeholder="Enter password" required>
+        <input type="text" id="role" placeholder="Enter role (e.g., user, admin)" required>
+        
+        <button id="create-user-btn">Create User</button>
+        
+        <div id="loader" class="loader"></div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Function to check if the user is authenticated and has the admin role
+        function checkAdminRole() {
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    // Check if the user has the 'admin' role
+                    db.collection('users').doc(user.uid).get().then(doc => {
+                        if (!doc.exists || doc.data().role !== 'admin') {
+                            window.location.href = "index.html";  // Redirect to login if not admin
+                        }
+                    }).catch(error => {
+                        console.error("Error checking user role: ", error);
+                        window.location.href = "index.html";  // Redirect if error
+                    });
+                } else {
+                    window.location.href = "index.html";  // Redirect to login if not logged in
+                }
+            });
+        }
+
+        // Create new user function
+        document.getElementById("create-user-btn").addEventListener("click", () => {
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const role = document.getElementById("role").value;
+
+            if (!email || !password || !role) {
+                document.getElementById("error-message").innerText = "Please fill all fields.";
+                document.getElementById("error-message").style.display = "block";
+                return;
+            }
+
+            document.getElementById("loader").style.display = "block";
+
+            // Create user in Firebase Authentication
+            auth.createUserWithEmailAndPassword(email, password).then((userCredential) => {
+                const user = userCredential.user;
+
+                // Add role to Firestore
+                db.collection('users').doc(user.uid).set({
+                    email: user.email,
+                    role: role
+                }).then(() => {
+                    document.getElementById("loader").style.display = "none";
+                    alert("User created successfully!");
+                    window.location.href = "admin.html";  // Redirect to admin page after success
+                }).catch((error) => {
+                    document.getElementById("loader").style.display = "none";
+                    document.getElementById("error-message").innerText = "Error creating user: " + error.message;
+                    document.getElementById("error-message").style.display = "block";
+                });
+            }).catch((error) => {
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("error-message").innerText = "Error: " + error.message;
+                document.getElementById("error-message").style.display = "block";
+            });
+        });
+
+        // Initial check if the user is authenticated and an admin
+        checkAdminRole();
+    </script>
+</body>
+</html>
