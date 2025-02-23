@@ -36,9 +36,10 @@
             measurementId: "G-VX9LKVG6ZD"
         };
 
-        const app = firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
         // Function to check if the user is authenticated and has the admin role
         function checkAdminRole() {
