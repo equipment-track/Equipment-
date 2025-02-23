@@ -97,16 +97,17 @@ button {
 button:hover {
     background-color: #45a049;
 }
+
 /* Admin Page specific styles */
 #logout-btn {
     position: absolute;
     top: 20px;
-    right: 20px;
+    left: 20px;
     background-color: #e53935;
     color: white;
     border: none;
-    padding: 8px 15px;
-    font-size: 14px;
+    padding: 5px 12px;
+    font-size: 12px;
     border-radius: 5px;
     cursor: pointer;
 }
@@ -115,3 +116,25 @@ button:hover {
     background-color: #d32f2f;
 }
 
+.nav-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 80px;
+}
+
+.nav-buttons button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 25px;
+    margin: 10px 0;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    width: 60%; /* Center align the buttons */
+}
+
+.nav-buttons button:hover {
+    background-color: #45a049;
+}
