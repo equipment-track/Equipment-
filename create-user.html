@@ -44,24 +44,7 @@
         const db = getFirestore(app);
 
         // Function to check if the logged-in user is an admin
-        function checkAdminRole() {
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    try {
-                        const userRef = doc(db, "users", user.uid);
-                        const userSnap = await getDoc(userRef);
-                        if (!userSnap.exists() || userSnap.data().role !== "admin") {
-                            window.location.href = "index.html"; // Redirect if not an admin
-                        }
-                    } catch (error) {
-                        console.error("Error checking user role:", error);
-                        window.location.href = "index.html"; // Redirect on error
-                    }
-                } else {
-                    window.location.href = "index.html"; // Redirect if not logged in
-                }
-            });
-        }
+        
 
         // Function to create a new user
         document.getElementById("create-user-btn").addEventListener("click", async () => {
@@ -113,7 +96,7 @@
         });
 
         // Initial check if the user is authenticated and an admin
-        checkAdminRole();
+       
     </script>
 </body>
 </html>
