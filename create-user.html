@@ -45,7 +45,19 @@
 
         // Function to check if the logged-in user is an admin
         
-
+                onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    const role = userDoc.data().role;
+                    if (role !== "admin") {
+                        window.location.href = "login.html"; // Redirect if not admin
+                    }
+                }
+            } else {
+                window.location.href = "login.html"; // Redirect to login if not authenticated
+            }
+        });
         // Function to create a new user
         document.getElementById("create-user-btn").addEventListener("click", async () => {
             const email = document.getElementById("email").value;
