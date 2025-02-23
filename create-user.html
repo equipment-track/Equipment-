@@ -13,6 +13,7 @@
         
         <input type="email" id="email" placeholder="Enter email" required>
         <input type="password" id="password" placeholder="Enter password" required>
+        <input type="password" id="confirm-password" placeholder="Confirm password" required>
         <input type="text" id="role" placeholder="Enter role (e.g., user, admin)" required>
         
         <button id="create-user-btn">Create User</button>
@@ -69,7 +70,12 @@
                 return;
             }
 
-            document.getElementById("loader").style.display = "block";
+           if (password !== confirmPassword) {
+                document.getElementById("error-message").innerText = "Passwords do not match.";
+                document.getElementById("error-message").style.display = "block";
+                return;
+            }
+ document.getElementById("loader").style.display = "block";
 
             // Create user in Firebase Authentication
             auth.createUserWithEmailAndPassword(email, password).then((userCredential) => {
