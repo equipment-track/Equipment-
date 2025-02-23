@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script type="module">
+        // Firebase Configuration and Initialization
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBtuhLluv-z5jGcHq_HL03Xt38q8U6zYsI",
+            authDomain: "equipment-trackin.firebaseapp.com",
+            projectId: "equipment-trackin",
+            storageBucket: "equipment-trackin.firebasestorage.app",
+            messagingSenderId: "1050154806013",
+            appId: "1:1050154806013:web:72a52bbbe62744abea6c94",
+            measurementId: "G-VX9LKVG6ZD"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
+        const db = getFirestore();
+
+        const loader = document.getElementById("loader");
+
+        // Function to show loader
+        function showLoader(show) {
+            loader.style.display = show ? "block" : "none";
+        }
+
+        // Check if the logged-in user is an admin
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                showLoader(true);
+                const userDoc = await getDoc(doc(db, "users", user.uid));
+                if (userDoc.exists()) {
+                    const role = userDoc.data().role;
+                    if (role === "admin") {
+                        // Proceed to admin page if the user is admin
+                        showLoader(false);
+                    } else {
+                        // Redirect non-admin users to the login page
+                        window.location.href = "index.html";
+                    }
+                } else {
+                    // If no user document is found, redirect to login
+                    window.location.href = "index.html";
+                }
+            } else {
+                // If no user is logged in, redirect to login
+                window.location.href = "index.html";
+            }
+        });
+    </script>
+</head>
+<body>
+    <!-- Loader -->
+    <div class="loader" id="loader"></div>
+
+    <!-- Admin Dashboard Content -->
+    <div class="admin-container">
+        <!-- Logout Button at Top-Right -->
+        <button id="logout-btn" class="logout-btn">Logout</button>
+
+        <!-- Navigation -->
+        <div class="admin-nav">
+            <h1>Admin Dashboard</h1>
+            <div class="nav-links">
+                <a href="create-user.html" id="create-user-link">Create User</a>
+                <a href="user-management.html" id="user-management-link">User Management</a>
+                <a href="equipment-management.html" id="equipment-management-link">Equipment Management</a>
+            </div>
+        </div>
+
+        <!-- Content Section will load here -->
+        <div id="admin-content">
+            <p>Only admins can access these features.</p>
+        </div>
+    </div>
+
+    <script type="module">
+        import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
+        const auth = getAuth();
+
+        // Logout functionality
+        document.getElementById("logout-btn").addEventListener("click", async () => {
+            await signOut(auth);
+            window.location.href = "index.html"; // Redirect to login page
+        });
+    </script>
+</body>
+</html>
