@@ -22,10 +22,12 @@
     </div>
 
     <script type="module">
+        // Import Firebase modules
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBtuhLluv-z5jGcHq_HL03Xt38q8U6zYsI",
             authDomain: "equipment-trackin.firebaseapp.com",
@@ -41,67 +43,73 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Function to check if the user is authenticated and has the admin role
+        // Function to check if the logged-in user is an admin
         function checkAdminRole() {
-            const user = auth.currentUser;
-            if (user) {
-                const userRef = doc(db, "users", user.uid);
-                getDoc(userRef).then(docSnap => {
-                    if (!docSnap.exists() || docSnap.data().role !== "admin") {
-                        window.location.href = "index.html";  // Redirect to login if not admin
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    try {
+                        const userRef = doc(db, "users", user.uid);
+                        const userSnap = await getDoc(userRef);
+                        if (!userSnap.exists() || userSnap.data().role !== "admin") {
+                            window.location.href = "index.html"; // Redirect if not an admin
+                        }
+                    } catch (error) {
+                        console.error("Error checking user role:", error);
+                        window.location.href = "index.html"; // Redirect on error
                     }
-                }).catch(error => {
-                    console.error("Error checking user role:", error);
-                    window.location.href = "index.html";  // Redirect if error
-                });
-            } else {
-                window.location.href = "index.html";  // Redirect to login if not logged in
-            }
+                } else {
+                    window.location.href = "index.html"; // Redirect if not logged in
+                }
+            });
         }
 
-        // Create new user function
-        document.getElementById("create-user-btn").addEventListener("click", () => {
+        // Function to create a new user
+        document.getElementById("create-user-btn").addEventListener("click", async () => {
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
-            const role = document.getElementById("role").value;
             const confirmPassword = document.getElementById("confirm-password").value;
-            if (!email || !password || !role) {
-                document.getElementById("error-message").innerText = "Please fill all fields.";
-                document.getElementById("error-message").style.display = "block";
+            const role = document.getElementById("role").value;
+            const errorMessage = document.getElementById("error-message");
+            const loader = document.getElementById("loader");
+
+            // Clear previous error message
+            errorMessage.style.display = "none";
+            errorMessage.innerText = "";
+
+            // Input validation
+            if (!email || !password || !confirmPassword || !role) {
+                errorMessage.innerText = "Please fill all fields.";
+                errorMessage.style.display = "block";
                 return;
             }
-
             if (password !== confirmPassword) {
-                document.getElementById("error-message").innerText = "Passwords do not match.";
-                document.getElementById("error-message").style.display = "block";
+                errorMessage.innerText = "Passwords do not match.";
+                errorMessage.style.display = "block";
                 return;
             }
 
-            document.getElementById("loader").style.display = "block";  // Show loader
+            loader.style.display = "block"; // Show loader
 
-            // Create user in Firebase Authentication
-            createUserWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    const user = userCredential.user;
-                    // Add user role to Firestore
-                    setDoc(doc(db, "users", user.uid), {
-                        email: user.email,
-                        role: role
-                    }).then(() => {
-                        document.getElementById("loader").style.display = "none";  // Hide loader
-                        alert("User created successfully!");
-                        window.location.href = "admin.html";  // Redirect to admin page
-                    }).catch((error) => {
-                        document.getElementById("loader").style.display = "none";  // Hide loader
-                        document.getElementById("error-message").innerText = "Error creating user: " + error.message;
-                        document.getElementById("error-message").style.display = "block";
-                    });
-                })
-                .catch((error) => {
-                    document.getElementById("loader").style.display = "none";  // Hide loader
-                    document.getElementById("error-message").innerText = "Error: " + error.message;
-                    document.getElementById("error-message").style.display = "block";
+            try {
+                // Create user in Firebase Authentication
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const newUser = userCredential.user;
+
+                // Save user role in Firestore
+                await setDoc(doc(db, "users", newUser.uid), {
+                    email: newUser.email,
+                    role: role
                 });
+
+                alert("User created successfully!");
+                window.location.href = "admin.html"; // Redirect to admin page
+
+            } catch (error) {
+                errorMessage.innerText = "Error: " + error.message;
+                errorMessage.style.display = "block";
+            } finally {
+                loader.style.display = "none"; // Hide loader
+            }
         });
 
         // Initial check if the user is authenticated and an admin
