@@ -119,8 +119,7 @@
                 console.log("User created successfully:", newUser.uid);
 
                 // 🔹 Switch Back to Admin User
-                await signOut(auth);
-                await signInWithEmailAndPassword(auth, adminUser.email, password);
+   
 
                 // 🔹 Save User Role in Firestore
                 console.log("Saving user details in Firestore...");
