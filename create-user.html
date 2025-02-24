@@ -23,8 +23,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         // 🔹 Firebase Config
         const firebaseConfig = {
@@ -41,6 +41,9 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth();
         const db = getFirestore();
+
+        let adminEmail = "";
+        let adminPassword = "";
 
         // 🔹 Verify Admin Role on Page Load
         onAuthStateChanged(auth, async (user) => {
@@ -61,6 +64,7 @@
                     window.location.href = "login.html";
                 } else {
                     console.log("User is an admin.");
+                    adminEmail = user.email; // Store admin email
                 }
             } catch (error) {
                 console.error("Error verifying admin role:", error);
@@ -95,7 +99,7 @@
             loader.style.display = "block";
 
             try {
-                // 🔹 Verify Logged-In Admin
+                // 🔹 Get Current Admin Session
                 const adminUser = auth.currentUser;
                 if (!adminUser) {
                     alert("Not authenticated. Redirecting to login...");
@@ -103,34 +107,53 @@
                     return;
                 }
 
-                const adminDoc = await getDoc(doc(db, "users", adminUser.uid));
-
-                if (!adminDoc.exists() || adminDoc.data().role !== "admin") {
-                    console.error("Admin verification failed!");
-                    alert("Permission denied: Only admins can create users.");
-                    window.location.href = "login.html";
+                // 🔹 Store Admin Password (Admin must be logged in)
+                adminPassword = prompt("Re-enter your password to continue:");
+                if (!adminPassword) {
+                    alert("Admin password is required.");
+                    loader.style.display = "none";
                     return;
                 }
 
-                // 🔹 Create User in Firebase Auth (Temporarily Sign in as New User)
-                console.log("Creating user...");
+                // 🔹 Check if the Email Already Exists in Firestore
+                console.log("Checking if email exists in Firestore...");
+                const emailQuery = query(collection(db, "users"), where("email", "==", email));
+                const querySnapshot = await getDocs(emailQuery);
+
+                if (!querySnapshot.empty) {
+                    errorMessage.innerText = "Email already exists in Firestore.";
+                    errorMessage.style.display = "block";
+                    loader.style.display = "none";
+                    return;
+                }
+
+                // 🔹 Store User Details in Firestore
+                console.log("Storing user details in Firestore...");
+                const newUserDocRef = doc(db, "users", email); // Use email as the document ID
+                await setDoc(newUserDocRef, { email, role });
+
+                console.log("User details stored in Firestore successfully.");
+
+                // 🔹 Create User in Firebase Auth
+                console.log("Creating user in Firebase Auth...");
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const newUser = userCredential.user;
-                console.log("User created successfully:", newUser.uid);
+                console.log("User created successfully in Firebase Auth:", newUser.uid);
 
-                // 🔹 Switch Back to Admin User
-   
+                // 🔹 Immediately sign out new user
+                await signOut(auth);
+                console.log("New user signed out.");
 
-                // 🔹 Save User Role in Firestore
-                console.log("Saving user details in Firestore...");
-                await setDoc(doc(db, "users", newUser.uid), { email, role });
+                // 🔹 Re-authenticate Admin
+                console.log("Re-authenticating admin...");
+                await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
+                console.log("Admin re-authenticated.");
 
-                console.log("User saved in Firestore successfully.");
                 alert("User created successfully!");
                 window.location.href = "admin.html"; // Redirect to admin page
 
             } catch (error) {
-                console.error("Error creating user:", error.code, error.message);
+                console.error("Error:", error.code, error.message);
                 errorMessage.innerText = "Error: " + error.message;
                 errorMessage.style.display = "block";
             } finally {
