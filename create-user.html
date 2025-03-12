@@ -10,37 +10,42 @@
     <div class="login-container">
         <h1>Create User</h1>
         <div id="error-message" class="error-message" style="display: none;"></div>
+        <div id="success-message" class="success-message" style="display: none;"></div>
 
-        <!-- Username Field -->
-        <input type="text" id="username" placeholder="Enter username" required>
-        
-        <!-- Email Field -->
-        <input type="email" id="email" placeholder="Enter email" required>
+        <div class="input-group">
+            <label for="email">Email</label>
+            <input type="email" id="email" placeholder="Enter email" required>
+        </div>
 
-        <!-- Password Field -->
-        <input type="password" id="password" placeholder="Enter password" required>
+        <div class="input-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter password" required>
+        </div>
 
-        <!-- Confirm Password Field -->
-        <input type="password" id="confirm-password" placeholder="Confirm password" required>
+        <div class="input-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" placeholder="Enter username" required>
+        </div>
 
-        <!-- Role Dropdown -->
-        <select id="role" required>
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-        </select>
+        <div class="input-group">
+            <label for="role">Role</label>
+            <select id="role" required>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
 
-        <!-- Create User Button -->
         <button id="create-user-btn">Create User</button>
 
-        <!-- Loading Spinner -->
         <div id="loader" class="loader" style="display: none;"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+        // 🔹 Firebase Config
         const firebaseConfig = {
             apiKey: "AIzaSyBtuhLluv-z5jGcHq_HL03Xt38q8U6zYsI",
             authDomain: "equipment-trackin.firebaseapp.com",
@@ -51,61 +56,47 @@
             measurementId: "G-VX9LKVG6ZD"
         };
 
+        // 🔹 Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth();
         const db = getFirestore();
 
-        let adminEmail = "";
-
         // 🔹 Verify Admin Role on Page Load
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                console.log("No user logged in. Redirecting...");
-                window.location.href = "login.html";
+                window.location.href = "index.html"; // Redirect to login if not logged in
                 return;
             }
 
             try {
-                console.log("Checking if user is admin...");
                 const userDoc = await getDoc(doc(db, "users", user.uid));
 
                 if (!userDoc.exists() || userDoc.data().role !== "admin") {
-                    console.error("Access denied: Not an admin.");
-                    alert("You are not authorized to access this page.");
-                    await signOut(auth);
-                    window.location.href = "login.html";
-                } else {
-                    console.log("User is an admin.");
-                    adminEmail = user.email; // Store admin email
+                    alert("Access denied: Not an admin.");
+                    window.location.href = "index.html"; // Redirect to login if not admin
                 }
             } catch (error) {
-                console.error("Error verifying admin role:", error);
-                alert("Error checking admin role.");
-                window.location.href = "login.html";
+                alert("Error verifying admin role.");
+                window.location.href = "index.html"; // Redirect to login if error
             }
         });
 
         // 🔹 Create User Function
         document.getElementById("create-user-btn").addEventListener("click", async () => {
-            console.log("Create User button clicked");  // Debugging line
-            const username = document.getElementById("username").value;
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
-            const confirmPassword = document.getElementById("confirm-password").value;
+            const username = document.getElementById("username").value;
             const role = document.getElementById("role").value;
             const errorMessage = document.getElementById("error-message");
+            const successMessage = document.getElementById("success-message");
             const loader = document.getElementById("loader");
 
             errorMessage.style.display = "none";
-            errorMessage.innerText = "";
+            successMessage.style.display = "none";
+            loader.style.display = "none";
 
-            if (!username || !email || !password || !confirmPassword || !role) {
+            if (!email || !password || !username || !role) {
                 errorMessage.innerText = "Please fill all fields.";
-                errorMessage.style.display = "block";
-                return;
-            }
-            if (password !== confirmPassword) {
-                errorMessage.innerText = "Passwords do not match.";
                 errorMessage.style.display = "block";
                 return;
             }
@@ -113,40 +104,21 @@
             loader.style.display = "block";
 
             try {
-                // 🔹 Check if the Email Already Exists in Firestore
-                console.log("Checking if email exists in Firestore...");
-                const emailQuery = query(collection(db, "users"), where("email", "==", email));
-                const querySnapshot = await getDocs(emailQuery);
-
-                if (!querySnapshot.empty) {
-                    errorMessage.innerText = "Email already exists in Firestore.";
-                    errorMessage.style.display = "block";
-                    loader.style.display = "none";
-                    return;
-                }
-
-                // 🔹 Store User Details in Firestore with Email as Document ID
-                console.log("Storing user details in Firestore...");
-                const newUserDocRef = doc(db, "users", email); // Use email as the document ID
-                await setDoc(newUserDocRef, { username, email, role });
-
-                console.log("User details stored in Firestore successfully.");
-
-                // 🔹 Create User in Firebase Auth
-                console.log("Creating user in Firebase Auth...");
+                // 🔹 Create User in Firebase Authentication
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const newUser = userCredential.user;
-                console.log("User created successfully in Firebase Auth:", newUser.uid);
+                const uid = newUser.uid;
 
-                // 🔹 Immediately sign out new user
-                await signOut(auth);
-                console.log("New user signed out.");
+                // 🔹 Store User Data in Firestore
+                await setDoc(doc(db, "users", uid), {
+                    email: email,
+                    username: username,
+                    role: role
+                });
 
-                alert("User created successfully!");
-                window.location.href = "index.html"; // Redirect to the home page after user creation
-
+                successMessage.innerText = "User created successfully!";
+                successMessage.style.display = "block";
             } catch (error) {
-                console.error("Error:", error.code, error.message);
                 errorMessage.innerText = "Error: " + error.message;
                 errorMessage.style.display = "block";
             } finally {
