@@ -138,3 +138,42 @@ button:hover {
 .nav-buttons button:hover {
     background-color: #45a049;
 }
+
+/* Dropdown Styling */
+.select-container {
+    position: relative;
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.select-container select {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    background-color: #f9f9f9;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    appearance: none; /* Hide default arrow */
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* Custom Dropdown Arrow */
+.select-container::after {
+    content: "▼";
+    font-size: 14px;
+    color: #666;
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+/* Hover & Focus Effects */
+.select-container select:hover,
+.select-container select:focus {
+    border-color: #007BFF;
+    background-color: #fff;
+    outline: none;
+}
