@@ -12,9 +12,16 @@
         <div id="error-message" class="error-message" style="display: none;"></div>
 
         <input type="email" id="email" placeholder="Enter email" required>
+        <input type="text" id="username" placeholder="Enter username" required>
         <input type="password" id="password" placeholder="Enter password" required>
         <input type="password" id="confirm-password" placeholder="Confirm password" required>
-        <input type="text" id="role" placeholder="Enter role (e.g., user, admin)" required>
+
+        <!-- 🔹 Role Selection Dropdown -->
+        <select id="role" required>
+            <option value="" disabled selected>Select Role</option>
+            <option value="admin">Admin</option>
+            <option value="user">User</option>
+        </select>
 
         <button id="create-user-btn">Create User</button>
 
@@ -24,7 +31,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         // 🔹 Firebase Config
         const firebaseConfig = {
@@ -48,23 +55,18 @@
         // 🔹 Verify Admin Role on Page Load
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                console.log("No user logged in. Redirecting...");
                 window.location.href = "login.html";
                 return;
             }
 
             try {
-                console.log("Checking if user is admin...");
                 const userDoc = await getDoc(doc(db, "users", user.uid));
-
                 if (!userDoc.exists() || userDoc.data().role !== "admin") {
-                    console.error("Access denied: Not an admin.");
                     alert("You are not authorized to access this page.");
                     await signOut(auth);
                     window.location.href = "login.html";
                 } else {
-                    console.log("User is an admin.");
-                    adminEmail = user.email; // Store admin email
+                    adminEmail = user.email;
                 }
             } catch (error) {
                 console.error("Error verifying admin role:", error);
@@ -76,6 +78,7 @@
         // 🔹 Create User Function
         document.getElementById("create-user-btn").addEventListener("click", async () => {
             const email = document.getElementById("email").value;
+            const username = document.getElementById("username").value;
             const password = document.getElementById("password").value;
             const confirmPassword = document.getElementById("confirm-password").value;
             const role = document.getElementById("role").value;
@@ -85,7 +88,7 @@
             errorMessage.style.display = "none";
             errorMessage.innerText = "";
 
-            if (!email || !password || !confirmPassword || !role) {
+            if (!email || !username || !password || !confirmPassword || !role) {
                 errorMessage.innerText = "Please fill all fields.";
                 errorMessage.style.display = "block";
                 return;
@@ -115,30 +118,17 @@
                     return;
                 }
 
-                // 🔹 Check if the Email Already Exists in Firestore
-                console.log("Checking if email exists in Firestore...");
-                const emailQuery = query(collection(db, "users"), where("email", "==", email));
-                const querySnapshot = await getDocs(emailQuery);
-
-                if (!querySnapshot.empty) {
-                    errorMessage.innerText = "Email already exists in Firestore.";
-                    errorMessage.style.display = "block";
-                    loader.style.display = "none";
-                    return;
-                }
-
-                // 🔹 Store User Details in Firestore
-                console.log("Storing user details in Firestore...");
-                const newUserDocRef = doc(db, "users", email); // Use email as the document ID
-                await setDoc(newUserDocRef, { email, role });
-
-                console.log("User details stored in Firestore successfully.");
-
                 // 🔹 Create User in Firebase Auth
                 console.log("Creating user in Firebase Auth...");
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const newUser = userCredential.user;
                 console.log("User created successfully in Firebase Auth:", newUser.uid);
+
+                // 🔹 Store User Details in Firestore using UID
+                console.log("Storing user details in Firestore...");
+                await setDoc(doc(db, "users", newUser.uid), { email, username, role });
+
+                console.log("User details stored in Firestore successfully.");
 
                 // 🔹 Immediately sign out new user
                 await signOut(auth);
