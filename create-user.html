@@ -50,38 +50,27 @@
         let adminEmail = "";
         let adminPassword = "";
 
-        // 🔹 Verify Admin Role on Page Load
+        // 🔹 Ensure Only Admins Can Access This Page
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                console.log("No user logged in. Redirecting...");
-                window.location.href = "index.html"; // Redirect to sign-in page
+                window.location.href = "index.html";
                 return;
             }
 
-            try {
-                console.log("Checking if user is admin...");
-                const userDoc = await getDoc(doc(db, "users", user.uid));
-
-                if (!userDoc.exists() || userDoc.data().role !== "admin") {
-                    console.error("Access denied: Not an admin.");
-                    alert("You are not authorized to access this page.");
-                    await signOut(auth);
-                    window.location.href = "index.html";
-                } else {
-                    console.log("User is an admin.");
-                    adminEmail = user.email; // Store admin email
-                }
-            } catch (error) {
-                console.error("Error verifying admin role:", error);
-                alert("Error checking admin role.");
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (!userDoc.exists() || userDoc.data().role !== "admin") {
+                alert("Access denied. Admins only.");
+                await signOut(auth);
                 window.location.href = "index.html";
+            } else {
+                adminEmail = user.email;
             }
         });
 
         // 🔹 Create User Function
         document.getElementById("create-user-btn").addEventListener("click", async () => {
-            const username = document.getElementById("username").value;
-            const email = document.getElementById("email").value;
+            const username = document.getElementById("username").value.trim();
+            const email = document.getElementById("email").value.trim();
             const password = document.getElementById("password").value;
             const confirmPassword = document.getElementById("confirm-password").value;
             const role = document.getElementById("role").value;
@@ -105,27 +94,9 @@
             loader.style.display = "block";
 
             try {
-                // 🔹 Get Current Admin Session
-                const adminUser = auth.currentUser;
-                if (!adminUser) {
-                    alert("Not authenticated. Redirecting to login...");
-                    window.location.href = "index.html";
-                    return;
-                }
-
-                // 🔹 Store Admin Password (Admin must be logged in)
-                adminPassword = prompt("Re-enter your password to continue:");
-                if (!adminPassword) {
-                    alert("Admin password is required.");
-                    loader.style.display = "none";
-                    return;
-                }
-
-                // 🔹 Check if the Email Already Exists in Firestore
-                console.log("Checking if email exists in Firestore...");
+                // 🔹 Check if Email Exists in Firestore
                 const emailQuery = query(collection(db, "users"), where("email", "==", email));
                 const querySnapshot = await getDocs(emailQuery);
-
                 if (!querySnapshot.empty) {
                     errorMessage.innerText = "Email already exists in Firestore.";
                     errorMessage.style.display = "block";
@@ -133,36 +104,35 @@
                     return;
                 }
 
-                // 🔹 Create User in Firebase Auth
-                console.log("Creating user in Firebase Auth...");
+                // 🔹 Create User in Firebase Authentication (Without Logging In)
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const newUser = userCredential.user;
-                console.log("User created successfully in Firebase Auth:", newUser.uid);
+                const newUserId = newUser.uid;
 
                 // 🔹 Store User Details in Firestore (Using UID as Document ID)
-                console.log("Storing user details in Firestore...");
-                await setDoc(doc(db, "users", newUser.uid), {
-                    username: username,
-                    email: email,
-                    role: role
+                await setDoc(doc(db, "users", newUserId), { 
+                    username, 
+                    email, 
+                    role, 
+                    createdAt: new Date()
                 });
 
-                console.log("User details stored in Firestore successfully.");
-
-                // 🔹 Immediately sign out new user
+                // 🔹 Sign Out New User (Ensure Admin Stays Logged In)
                 await signOut(auth);
-                console.log("New user signed out.");
 
                 // 🔹 Re-authenticate Admin
-                console.log("Re-authenticating admin...");
+                adminPassword = prompt("Re-enter your password to continue:");
+                if (!adminPassword) {
+                    alert("Admin password is required.");
+                    loader.style.display = "none";
+                    return;
+                }
                 await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-                console.log("Admin re-authenticated.");
 
                 alert("User created successfully!");
-                window.location.href = "admin.html"; // Redirect to admin page
+                window.location.href = "admin.html";
 
             } catch (error) {
-                console.error("Error:", error.code, error.message);
                 errorMessage.innerText = "Error: " + error.message;
                 errorMessage.style.display = "block";
             } finally {
