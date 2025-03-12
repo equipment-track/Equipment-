@@ -11,27 +11,25 @@
         <h1>Create User</h1>
         <div id="error-message" class="error-message" style="display: none;"></div>
 
-        <input type="email" id="email" placeholder="Enter email" required>
         <input type="text" id="username" placeholder="Enter username" required>
+        <input type="email" id="email" placeholder="Enter email" required>
         <input type="password" id="password" placeholder="Enter password" required>
         <input type="password" id="confirm-password" placeholder="Confirm password" required>
 
-        <!-- 🔹 Role Selection Dropdown -->
+        <label for="role">Select Role:</label>
         <select id="role" required>
-            <option value="" disabled selected>Select Role</option>
-            <option value="admin">Admin</option>
             <option value="user">User</option>
+            <option value="admin">Admin</option>
         </select>
 
         <button id="create-user-btn">Create User</button>
-
         <div id="loader" class="loader" style="display: none;"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         // 🔹 Firebase Config
         const firebaseConfig = {
@@ -42,7 +40,7 @@
             messagingSenderId: "1050154806013",
             appId: "1:1050154806013:web:72a52bbbe62744abea6c94",
             measurementId: "G-VX9LKVG6ZD"
-        }; 
+        };
 
         // 🔹 Initialize Firebase
         const app = initializeApp(firebaseConfig);
@@ -55,30 +53,35 @@
         // 🔹 Verify Admin Role on Page Load
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                window.location.href = "login.html";
+                console.log("No user logged in. Redirecting...");
+                window.location.href = "index.html"; // Redirect to sign-in page
                 return;
             }
 
             try {
+                console.log("Checking if user is admin...");
                 const userDoc = await getDoc(doc(db, "users", user.uid));
+
                 if (!userDoc.exists() || userDoc.data().role !== "admin") {
+                    console.error("Access denied: Not an admin.");
                     alert("You are not authorized to access this page.");
                     await signOut(auth);
-                    window.location.href = "login.html";
+                    window.location.href = "index.html";
                 } else {
-                    adminEmail = user.email;
+                    console.log("User is an admin.");
+                    adminEmail = user.email; // Store admin email
                 }
             } catch (error) {
                 console.error("Error verifying admin role:", error);
                 alert("Error checking admin role.");
-                window.location.href = "login.html";
+                window.location.href = "index.html";
             }
         });
 
         // 🔹 Create User Function
         document.getElementById("create-user-btn").addEventListener("click", async () => {
-            const email = document.getElementById("email").value;
             const username = document.getElementById("username").value;
+            const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
             const confirmPassword = document.getElementById("confirm-password").value;
             const role = document.getElementById("role").value;
@@ -88,7 +91,7 @@
             errorMessage.style.display = "none";
             errorMessage.innerText = "";
 
-            if (!email || !username || !password || !confirmPassword || !role) {
+            if (!username || !email || !password || !confirmPassword || !role) {
                 errorMessage.innerText = "Please fill all fields.";
                 errorMessage.style.display = "block";
                 return;
@@ -106,7 +109,7 @@
                 const adminUser = auth.currentUser;
                 if (!adminUser) {
                     alert("Not authenticated. Redirecting to login...");
-                    window.location.href = "login.html";
+                    window.location.href = "index.html";
                     return;
                 }
 
@@ -118,15 +121,31 @@
                     return;
                 }
 
+                // 🔹 Check if the Email Already Exists in Firestore
+                console.log("Checking if email exists in Firestore...");
+                const emailQuery = query(collection(db, "users"), where("email", "==", email));
+                const querySnapshot = await getDocs(emailQuery);
+
+                if (!querySnapshot.empty) {
+                    errorMessage.innerText = "Email already exists in Firestore.";
+                    errorMessage.style.display = "block";
+                    loader.style.display = "none";
+                    return;
+                }
+
                 // 🔹 Create User in Firebase Auth
                 console.log("Creating user in Firebase Auth...");
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 const newUser = userCredential.user;
                 console.log("User created successfully in Firebase Auth:", newUser.uid);
 
-                // 🔹 Store User Details in Firestore using UID
+                // 🔹 Store User Details in Firestore (Using UID as Document ID)
                 console.log("Storing user details in Firestore...");
-                await setDoc(doc(db, "users", newUser.uid), { email, username, role });
+                await setDoc(doc(db, "users", newUser.uid), {
+                    username: username,
+                    email: email,
+                    role: role
+                });
 
                 console.log("User details stored in Firestore successfully.");
 
