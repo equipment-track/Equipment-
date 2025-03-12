@@ -100,14 +100,15 @@ button:hover {
 }
 
 /* Dropdown styling */
+/* Dropdown styling */
 select {
     background-color: #f1f1f1;
     border: 2px solid #ddd;
     padding: 10px;
     border-radius: 25px;
     font-size: 1rem;
-    margin: 10px 0;
-    width: 80%;
+    margin: 20px 0; /* Increased margin for more spacing */
+    width: 80%; /* Ensure it matches the width of other form elements */
     -webkit-appearance: none;
     -moz-appearance: none;
     appearance: none;
@@ -121,6 +122,23 @@ select:focus {
 
 select option {
     padding: 10px;
+}
+
+/* General button styling for create user */
+button {
+    width: 80%; /* Same width as the other inputs */
+    padding: 15px 32px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 25px;
+    cursor: pointer;
+    font-size: 16px;
+    margin-top: 20px; /* Adds spacing from the role dropdown */
+}
+
+button:hover {
+    background-color: #45a049;
 }
 
 /* Admin Page specific styles */
