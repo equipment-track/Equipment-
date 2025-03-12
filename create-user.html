@@ -11,23 +11,35 @@
         <h1>Create User</h1>
         <div id="error-message" class="error-message" style="display: none;"></div>
 
+        <!-- Username Field -->
+        <input type="text" id="username" placeholder="Enter username" required>
+        
+        <!-- Email Field -->
         <input type="email" id="email" placeholder="Enter email" required>
+
+        <!-- Password Field -->
         <input type="password" id="password" placeholder="Enter password" required>
+
+        <!-- Confirm Password Field -->
         <input type="password" id="confirm-password" placeholder="Confirm password" required>
+
+        <!-- Role Dropdown -->
         <select id="role" required>
             <option value="user">User</option>
             <option value="admin">Admin</option>
         </select>
 
+        <!-- Create User Button -->
         <button id="create-user-btn">Create User</button>
 
+        <!-- Loading Spinner -->
         <div id="loader" class="loader" style="display: none;"></div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signOut, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBtuhLluv-z5jGcHq_HL03Xt38q8U6zYsI",
@@ -44,7 +56,6 @@
         const db = getFirestore();
 
         let adminEmail = "";
-        let adminPassword = "";
 
         // 🔹 Verify Admin Role on Page Load
         onAuthStateChanged(auth, async (user) => {
@@ -77,6 +88,7 @@
         // 🔹 Create User Function
         document.getElementById("create-user-btn").addEventListener("click", async () => {
             console.log("Create User button clicked");  // Debugging line
+            const username = document.getElementById("username").value;
             const email = document.getElementById("email").value;
             const password = document.getElementById("password").value;
             const confirmPassword = document.getElementById("confirm-password").value;
@@ -87,7 +99,7 @@
             errorMessage.style.display = "none";
             errorMessage.innerText = "";
 
-            if (!email || !password || !confirmPassword || !role) {
+            if (!username || !email || !password || !confirmPassword || !role) {
                 errorMessage.innerText = "Please fill all fields.";
                 errorMessage.style.display = "block";
                 return;
@@ -116,7 +128,7 @@
                 // 🔹 Store User Details in Firestore with Email as Document ID
                 console.log("Storing user details in Firestore...");
                 const newUserDocRef = doc(db, "users", email); // Use email as the document ID
-                await setDoc(newUserDocRef, { email, role });
+                await setDoc(newUserDocRef, { username, email, role });
 
                 console.log("User details stored in Firestore successfully.");
 
